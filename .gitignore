@@ -1,0 +1,16 @@
+# signing key — never commit, but DO back it up
+keystore/
+# build outputs
+dist/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.kotlin/
+server/.venv/
+server/build/
+server/dist/
+**/__pycache__/
+.pytest_cache/
+*.spec.bak
+server/*.spec

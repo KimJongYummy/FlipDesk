@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_bg" android:orientation="vertical"
+    android:gravity="center" android:padding="20dp">
+    <TextView android:id="@+id/w_title" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:textColor="#FFF2F2F2" android:textSize="20sp" android:textStyle="bold"
+        android:maxLines="2" android:ellipsize="end" android:text="@string/app_name" />
+    <TextView android:id="@+id/w_sub" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:textColor="#FF9A9A9A" android:textSize="15sp"
+        android:maxLines="1" android:ellipsize="end" android:layout_marginBottom="16dp" />
+    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center">
+        <ImageButton android:id="@+id/w_prev" style="@style/WidgetButtonBig" android:src="@drawable/ic_skip_previous"
+            android:contentDescription="@string/previous" />
+        <ImageButton android:id="@+id/w_play" style="@style/WidgetButtonBigAccent" android:src="@drawable/ic_play"
+            android:contentDescription="@string/play_pause" />
+        <ImageButton android:id="@+id/w_next" style="@style/WidgetButtonBig" android:src="@drawable/ic_skip_next"
+            android:contentDescription="@string/next" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center" android:layout_marginTop="14dp">
+        <ImageButton android:id="@+id/w_vol_down" style="@style/WidgetButtonBig" android:src="@drawable/ic_volume_down"
+            android:contentDescription="@string/volume_down" />
+        <ImageButton android:id="@+id/w_lock" style="@style/WidgetButtonBig" android:src="@drawable/ic_lock"
+            android:contentDescription="@string/lock_pc" />
+        <ImageButton android:id="@+id/w_vol_up" style="@style/WidgetButtonBig" android:src="@drawable/ic_volume_up"
+            android:contentDescription="@string/volume_up" />
+    </LinearLayout>
+</LinearLayout>

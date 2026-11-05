@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">FlipDesk</string>
+    <string name="play_pause">Play or pause</string>
+    <string name="previous">Previous track</string>
+    <string name="next">Next track</string>
+    <string name="volume_up">PC volume up</string>
+    <string name="volume_down">PC volume down</string>
+    <string name="lock_pc">Lock PC</string>
+    <string name="widget_home_desc">PC media, volume and lock</string>
+    <string name="widget_cover_desc">Big PC remote sized for the cover screen</string>
+    <string name="tile_label">FlipDesk</string>
+    <string name="share_label">Send to PC</string>
+</resources>
