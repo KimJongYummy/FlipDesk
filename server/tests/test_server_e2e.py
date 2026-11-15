@@ -64,6 +64,19 @@ async def until(pred, timeout=3.0):
         await asyncio.sleep(0.02)
 
 
+# --- input ----------------------------------------------------------------------
+async def test_disconnect_releases_keys_still_held(env):
+    srv, backend, _ = env
+    phone = await paired_phone(srv)
+    await phone.send("key", key="ctrl", action="down")
+    await phone.send("key", key="shift", action="down")
+    await phone.send("key", key="shift", action="up")
+    await until(lambda: ("key", "shift", "up", ()) in backend.calls)
+    await phone.close()
+    await until(lambda: ("key", "ctrl", "up", ()) in backend.calls)
+    assert backend.calls.count(("key", "shift", "up", ())) == 1, "shift was already up"
+
+
 # --- auth -----------------------------------------------------------------------
 async def test_unpaired_device_is_rejected(env):
     srv, backend, _ = env

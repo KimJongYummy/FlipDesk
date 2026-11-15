@@ -59,7 +59,7 @@ Secrets and PINs are single-use: a successful pairing consumes them.
 | `mouse_abs` | `x`, `y` (0..1), `monitor` | direct-touch mode; coordinates are normalized to that monitor |
 | `mouse_button` | `button` left/right/middle, `action` click/double/down/up | |
 | `scroll` | `dx`, `dy` (wheel notches, float) | 1.0 = one notch; positive `dy` scrolls up, positive `dx` scrolls right |
-| `key` | `key`, `action` press/down/up (default press), `mods` [ctrl,alt,shift,win] | key names: enter, backspace, tab, esc, space, arrows (`left`…), home, end, pageup, pagedown, insert, delete, f1–f12, printscreen, a–z, 0–9, or any single character |
+| `key` | `key`, `action` press/down/up (default press), `mods` [ctrl,alt,shift,win] | key names: enter, backspace, tab, esc, space, arrows (`left`…), home, end, pageup, pagedown, insert, delete, f1–f12, printscreen, a–z, 0–9, or any single character. A key still down when the connection drops is released by the server. |
 | `text` | `text` (≤ 10 000 chars) | typed as Unicode; `\n` becomes Enter |
 | `shortcut` | `name` | copy, paste, cut, undo, redo, select_all, find, save, new_tab, close_tab, refresh, alt_tab, app_next, app_prev, screenshot, show_desktop, task_view, close_window |
 | `media` | `action` play_pause/next/prev/stop | uses the OS media session, falling back to media keys |

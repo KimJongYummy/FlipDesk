@@ -73,6 +73,7 @@ fun SettingsScreen(onBack: () -> Unit, onPair: () -> Unit) {
             SliderRow("Acceleration", s.acceleration, 0f..2f, "%.1f") { v -> set { it.copy(acceleration = v) } }
             SliderRow("Scroll speed", s.scrollSpeed, 0.3f..3f, "%.1f×") { v -> set { it.copy(scrollSpeed = v) } }
             SwitchRow("Natural scrolling", "Content follows your fingers, like on the phone", s.naturalScroll) { v -> set { it.copy(naturalScroll = v) } }
+            SwitchRow("Hold to drag", "Press and hold still until it buzzes, then move to drag a window or file. Lift and touch again quickly to keep going; tap to let go.", s.holdToDrag) { v -> set { it.copy(holdToDrag = v) } }
             SliderRow("Air mouse speed", s.airSensitivity, 0.3f..3f, "%.1f×") { v -> set { it.copy(airSensitivity = v) } }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
@@ -95,7 +96,7 @@ fun SettingsScreen(onBack: () -> Unit, onPair: () -> Unit) {
                 FoldCloseAction.NOTHING -> "Nothing"; FoldCloseAction.PAUSE_MEDIA -> "Pause media"; FoldCloseAction.LOCK_PC -> "Lock PC" } }) { a ->
                 set { it.copy(foldClose = a) }
             }
-            ChoiceRow("Layout", LayoutOverride.entries, s.layout, { if (it == LayoutOverride.AUTO) "Automatic" else "Always cover remote" }) { l ->
+            ChoiceRow("Layout", LayoutOverride.entries, s.layout, { if (it == LayoutOverride.AUTO) "Automatic" else "Trackpad on any small screen" }) { l ->
                 set { it.copy(layout = l) }
             }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))

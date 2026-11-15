@@ -7,12 +7,12 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,8 +34,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.automirrored.rounded.KeyboardReturn
-import androidx.compose.material.icons.automirrored.rounded.Backspace
 import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.automirrored.rounded.Redo
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
@@ -48,7 +46,6 @@ import androidx.compose.material.icons.rounded.Calculate
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Description
-import androidx.compose.material.icons.rounded.DesktopWindows
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Lock
@@ -59,14 +56,12 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.RestartAlt
-import androidx.compose.material.icons.rounded.Screenshot
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.UploadFile
-import androidx.compose.material.icons.automirrored.rounded.ViewQuilt
 import androidx.compose.material.icons.automirrored.rounded.VolumeDown
 import androidx.compose.material.icons.rounded.Air
 import androidx.compose.material3.AlertDialog
@@ -114,6 +109,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipdesk.app.data.Prefs
 import com.flipdesk.app.input.AirMouse
+import com.flipdesk.app.input.HardwareKeys
 import com.flipdesk.app.input.Modifiers
 import com.flipdesk.app.input.RemoteInput
 import com.flipdesk.app.input.TypingDiff
@@ -179,6 +175,7 @@ fun TypeField(modifier: Modifier = Modifier, autoFocus: Boolean = false, minHeig
     val focus = remember { FocusRequester() }
     val kb = LocalSoftwareKeyboardController.current
     androidx.compose.runtime.LaunchedEffect(autoFocus) { if (autoFocus) runCatching { focus.requestFocus(); kb?.show() } }
+    val keyboard by HardwareKeys.attached.collectAsStateWithLifecycle()
     Box(
         modifier.heightIn(min = minHeight).clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
@@ -187,8 +184,11 @@ fun TypeField(modifier: Modifier = Modifier, autoFocus: Boolean = false, minHeig
         contentAlignment = Alignment.CenterStart,
     ) {
         if (tfv.text.isEmpty()) {
-            Text(if (Modifiers.any) "Type a key for ${Modifiers.active().joinToString("+")}…" else "Tap here and type — it goes to the PC live",
-                color = Muted, fontSize = 15.sp)
+            Text(when {
+                Modifiers.any -> "Type a key for ${Modifiers.active().joinToString("+")}…"
+                keyboard -> "Keyboard connected: just type, it goes straight to the PC"
+                else -> "Tap here and type — it goes to the PC live"
+            }, color = Muted, fontSize = 15.sp)
         }
         BasicTextField(
             value = tfv,
@@ -218,56 +218,22 @@ fun TypeField(modifier: Modifier = Modifier, autoFocus: Boolean = false, minHeig
 }
 
 @Composable
-fun ModifierKeys(modifier: Modifier = Modifier, height: androidx.compose.ui.unit.Dp = 48.dp) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        for (m in Modifiers.Mod.entries) {
-            val latch = Modifiers.state[m] ?: Modifiers.Latch.OFF
-            KeyCap(
-                label = if (m == Modifiers.Mod.WIN) "Win" else m.label,
-                onClick = { Modifiers.tap(m) },
-                modifier = Modifier.weight(1f),
-                selected = latch == Modifiers.Latch.ONCE,
-                locked = latch == Modifiers.Latch.LOCKED,
-                height = height,
-            )
-        }
-    }
-}
-
-@Composable
 fun KeysPane(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     Column(modifier.verticalScroll(rememberScrollState()).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         TypeField(Modifier.fillMaxWidth())
-        ModifierKeys(Modifier.fillMaxWidth())
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            KeyCap("Esc", { RemoteInput.key("esc") }, Modifier.weight(1f))
-            KeyCap("Tab", { RemoteInput.key("tab") }, Modifier.weight(1f))
-            KeyCap("Del", { RemoteInput.key("delete") }, Modifier.weight(1f))
-            KeyCap("Bksp", { RemoteInput.key("backspace") }, Modifier.weight(1f), icon = Icons.AutoMirrored.Rounded.Backspace)
-            KeyCap("Enter", { RemoteInput.key("enter") }, Modifier.weight(1f), icon = Icons.AutoMirrored.Rounded.KeyboardReturn)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            KeyCap("Home", { RemoteInput.key("home") }, Modifier.weight(1f))
-            KeyCap("End", { RemoteInput.key("end") }, Modifier.weight(1f))
-            KeyCap("PgUp", { RemoteInput.key("pageup") }, Modifier.weight(1f))
-            KeyCap("PgDn", { RemoteInput.key("pagedown") }, Modifier.weight(1f))
-        }
         ArrowKeys(Modifier.fillMaxWidth())
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (i in 1..12) KeyCap("F$i", { RemoteInput.key("f$i") }, Modifier.width(56.dp))
-        }
         SectionTitle("Shortcuts")
         val shortcuts = listOf(
             Triple("Copy", Icons.Rounded.ContentCopy, "copy"), Triple("Paste", Icons.Rounded.ContentPaste, "paste"),
+            Triple("Alt-Tab", Icons.Rounded.SwapHoriz, "alt_tab"),
             Triple("Undo", Icons.AutoMirrored.Rounded.Undo, "undo"), Triple("Redo", Icons.AutoMirrored.Rounded.Redo, "redo"),
-            Triple("Alt-Tab", Icons.Rounded.SwapHoriz, "alt_tab"), Triple("Snip", Icons.Rounded.Screenshot, "screenshot"),
-            Triple("Desktop", Icons.Rounded.DesktopWindows, "show_desktop"), Triple("Tasks", Icons.AutoMirrored.Rounded.ViewQuilt, "task_view"),
         )
-        for (row in shortcuts.chunked(4)) {
+        for (row in shortcuts.chunked(3)) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 for ((label, icon, name) in row) ShortcutTile(label, icon, Modifier.weight(1f)) { RemoteInput.shortcut(name) }
+                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) } // keep tiles the same width
             }
         }
         SectionTitle("Clipboard")

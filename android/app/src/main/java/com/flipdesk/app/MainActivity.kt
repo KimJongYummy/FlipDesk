@@ -67,6 +67,9 @@ class MainActivity : ComponentActivity() {
 
     private enum class Page { MAIN, SETTINGS, PAIR }
 
+    /** Settings and pairing keep the keyboard for themselves (the pairing PIN field, for one). */
+    private var onMainPage = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(SystemBarStyle.dark(android.graphics.Color.TRANSPARENT), SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
         super.onCreate(savedInstanceState)
@@ -101,6 +104,10 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(server) {
                     if (server != null && page == Page.PAIR) page = Page.MAIN
                     if (server != null && !permissionsPending()) askBatteryExemptionOnce()
+                }
+                LaunchedEffect(effective) {
+                    onMainPage = effective == Page.MAIN
+                    if (!onMainPage) HardwareKeys.releaseAll()
                 }
                 BackHandler(enabled = effective != Page.MAIN && server != null) { page = Page.MAIN }
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -166,9 +173,11 @@ class MainActivity : ComponentActivity() {
 
     @SuppressLint("RestrictedApi") // public Activity API; androidx.core only marks its own override restricted
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        // With the PC on the big screen, a keyboard paired to the phone types on the PC even
-        // while the phone screen has focus (DeX moves focus to whichever screen was touched last).
-        if (BigScreen.showingOn.value != null && HardwareKeys.isPhysicalKeyboard(event) && HardwareKeys.handle(event)) return true
+        // A keyboard paired to the phone types straight on the PC from any main screen, with no
+        // text field to focus. With the PC on the big screen that holds on every page, since DeX
+        // moves focus to whichever screen was touched last.
+        val forPc = onMainPage || BigScreen.showingOn.value != null
+        if (forPc && HardwareKeys.isPhysicalKeyboard(event) && HardwareKeys.handle(event)) return true
         if (VolumeKeys.handle(event)) return true
         return super.dispatchKeyEvent(event)
     }

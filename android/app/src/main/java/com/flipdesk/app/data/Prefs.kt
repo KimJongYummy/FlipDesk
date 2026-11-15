@@ -19,6 +19,8 @@ data class Settings(
     val acceleration: Float = 1f,
     val naturalScroll: Boolean = true,
     val scrollSpeed: Float = 1f,
+    /** Press and hold still on the trackpad to grab (e.g. a window's title bar), then move. */
+    val holdToDrag: Boolean = true,
     val haptics: Boolean = true,
     val volumeKeys: Boolean = true,
     val foldClose: FoldCloseAction = FoldCloseAction.NOTHING,
@@ -88,6 +90,7 @@ object Prefs {
             putFloat("acceleration", s.acceleration)
             putBoolean("naturalScroll", s.naturalScroll)
             putFloat("scrollSpeed", s.scrollSpeed)
+            putBoolean("holdToDrag", s.holdToDrag)
             putBoolean("haptics", s.haptics)
             putBoolean("volumeKeys", s.volumeKeys)
             putString("foldClose", s.foldClose.name)
@@ -112,6 +115,7 @@ object Prefs {
             acceleration = sp.getFloat("acceleration", d.acceleration),
             naturalScroll = sp.getBoolean("naturalScroll", d.naturalScroll),
             scrollSpeed = sp.getFloat("scrollSpeed", d.scrollSpeed),
+            holdToDrag = sp.getBoolean("holdToDrag", d.holdToDrag),
             haptics = sp.getBoolean("haptics", d.haptics),
             volumeKeys = sp.getBoolean("volumeKeys", d.volumeKeys),
             foldClose = enumOr(sp.getString("foldClose", null), d.foldClose),

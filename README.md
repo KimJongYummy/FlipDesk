@@ -159,19 +159,28 @@ top bar.
 | 1-finger move | pointer, with acceleration (speed slider under the pad and in Settings) |
 | tap / 2-finger tap / 3-finger tap | left / right / middle click |
 | quick double-tap | double-click |
+| press and hold still until it buzzes, then move | drag (grab a window's title bar to move it); turn off in Settings → *Hold to drag* |
 | double-tap and hold (or tap, then touch and move) | drag |
-| 2-finger drag | smooth scroll, vertical and horizontal |
+| lift mid-drag, then touch again within half a second | keep dragging (drag lock); a tap in that time lets go, otherwise it lets go by itself |
+| 2-finger drag | smooth scroll, vertical and horizontal; flick it and it glides on until you touch again |
 | 2-finger pinch | zoom (Ctrl + wheel on the PC) |
 | 3-finger swipe up / down | Task View / show desktop |
 | 3-finger swipe left / right | switch apps (Alt+Tab / Alt+Shift+Tab) |
 | hold the **air** button and tilt | gyroscope air mouse |
 
+* **Scroll strip:** the slim bar at the edge of the screen scrolls the PC with one finger, on
+  every tab. Flick it to glide; touch it again to stop. It uses the scroll speed and direction
+  from Settings, and it's there on the cover screen too.
+* **Bluetooth or USB keyboard:** connect one to the phone and just type. While FlipDesk is open
+  on any main screen, keys go straight to the PC, with no text field to tap and no autocorrect.
+  A green keyboard icon in the top bar shows it's connected.
+  * Shortcuts work (Ctrl+C, Ctrl+/, Shift+arrows), and so do Esc, Tab, the arrows and F1–F12.
+  * Android can keep some combinations for itself, usually ones with the Win key or Alt+Tab. If
+    one doesn't reach the PC, use the Alt-Tab button on the Keys tab, or the sticky Win key in
+    the half-folded (Flex mode) key row (tap Win, then press E).
 * **Keys:** whatever you type streams live, including backspace and Enter.
-  * Ctrl/Alt/Shift/Win are sticky: tap once for the next key only, tap twice to lock,
-    tap again to release. With Ctrl latched, typing `c` sends Ctrl+C.
-  * You also get Esc, Tab, arrows, Home/End/PgUp/PgDn and F1–F12.
-  * Shortcut buttons: copy, paste, undo, redo, Alt-Tab, snip (screenshot), show desktop,
-    Task View.
+  * Below the text field are the arrow keys.
+  * Shortcut buttons: copy, paste, Alt-Tab, undo, redo.
   * Clipboard buttons: Phone → PC and PC → Phone.
 * **Screen:** the live desktop as JPEG frames, downscaled to fit the phone.
   * Quality and frame rate adapt to the link, and frames are skipped when nothing changed.
@@ -180,6 +189,7 @@ top bar.
   * The toolbar picks the monitor (1/3, 2/3…) and switches the input mode:
     * **Touch:** tap = click there, long-press = right-click, drag = drag.
     * **Pad:** the stream acts as a trackpad.
+  * The **Type** button under the stream opens a text field; what you type goes to the PC.
 * **Media:** play/pause, next and previous, the system volume slider and mute. Shows what's
   playing on the PC (from Windows' media session: Spotify, browsers, etc.).
 * **Launch:** lock, sleep, restart and shut down (the last three ask first), "Send files to
@@ -212,9 +222,10 @@ top bar.
 * **Fully open, portrait:** a live preview at the top (it can be turned off in Settings),
   controls below, and the navigation bar at your thumb.
 * **Landscape:** a split layout, with the live screen on the left and controls on the right.
-* **Cover screen:** a compact remote with two swipeable pages. The first has now playing,
-  big media buttons, volume and Lock PC. The second has a mini trackpad with left/right
-  buttons. It is padded clear of the rounded corners and camera cutouts.
+* **Cover screen:** just a trackpad, filling the screen, with the scroll strip down the side.
+  Use it like the main trackpad: tap to click, two-finger tap to right-click, hold to drag. A Connect button appears only while it isn't connected. It is padded clear of
+  the rounded corners and camera cutouts. For media, use the cover screen's own media
+  controls (below).
 * **Fold-close action:** Settings → *When I close the phone* → Nothing / Pause media /
   Lock PC.
 * The screen stays awake on the trackpad, screen and laptop layouts. You can turn this off
@@ -250,12 +261,18 @@ One UI versions, so names may differ slightly.
    **Apps allowed on cover screen** → turn on **FlipDesk**.
    * Then open it from the cover screen's apps widget. FlipDesk switches to its cover
      layout automatically.
+   * To carry on straight from the main screen, look for Samsung's option to continue apps
+     on the cover screen when you close the phone (on Fold models it's Settings → Display →
+     *Continue apps on cover screen*; on the Flip it may sit under Labs). With it on, close
+     the phone while FlipDesk is open and the trackpad is right there.
+   * Set Settings → *When I close the phone* to **Nothing** (the default), or closing the
+     phone will pause media or lock the PC.
    * If FlipDesk isn't listed there, install **Good Lock** from the Galaxy Store, then go to
      **MultiStar** → *I ♡ Galaxy Foldable* → **Launcher Widget**, and add FlipDesk.
 3. Media controls on the cover screen need no setup. They come from the media session
    while FlipDesk is connected.
-4. If the cover layout ever doesn't appear on its own, use Settings → Layout →
-   *Always cover remote*.
+4. If the cover trackpad ever doesn't appear on its own, use Settings → Layout →
+   *Trackpad on any small screen*. The open phone always keeps the full app with its tabs.
 
 ### Big screen: Samsung DeX, HDMI or Smart View
 
@@ -267,7 +284,7 @@ to the top half and the trackpad to the bottom half.
 
 - **Mouse and keyboard on the big screen work too.** A Bluetooth or USB mouse moves the PC
   cursor exactly where you point, with left/right/middle buttons and the wheel. A physical
-  keyboard types on the PC, including shortcuts (Ctrl+C, Alt+Tab, Shift+arrows).
+  keyboard types on the PC, including shortcuts (Ctrl+C, Shift+arrows).
 - **On the phone:** the TV icon in the top bar of the deck stops the big screen, and the grid
   icon switches to the normal tabs (Media, Keys, Launch). Tap the TV icon in the top bar to
   get back to the deck, or to put the PC on the big screen again after stopping it.

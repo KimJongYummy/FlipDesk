@@ -61,7 +61,10 @@ fun BigScreenRemote(posture: Posture?, landscape: Boolean, onTabs: () -> Unit, o
         ArrowKeys(Modifier.fillMaxWidth(), height = 40.dp)
     }
     val pad: @Composable ColumnScope.() -> Unit = {
-        Trackpad(Modifier.weight(1f).fillMaxWidth(), corner = 22.dp)
+        Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Trackpad(Modifier.weight(1f).fillMaxHeight(), corner = 22.dp)
+            ScrollStrip(Modifier.fillMaxHeight())
+        }
         MouseButtonsRow(Modifier.fillMaxWidth(), height = 48.dp)
     }
     when {

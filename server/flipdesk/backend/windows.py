@@ -64,6 +64,8 @@ user32.SendInput.argtypes = (wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int)
 user32.SendInput.restype = wintypes.UINT
 user32.MapVirtualKeyW.argtypes = (wintypes.UINT, wintypes.UINT)
 user32.MapVirtualKeyW.restype = wintypes.UINT
+user32.VkKeyScanW.argtypes = (wintypes.WCHAR,)
+user32.VkKeyScanW.restype = ctypes.c_short
 
 VK: dict[str, int] = {
     "backspace": 0x08, "tab": 0x09, "enter": 0x0D, "shift": 0xA0, "ctrl": 0xA2, "alt": 0xA4,
@@ -100,6 +102,20 @@ def _vk(vk: int, up: bool) -> INPUT:
 def _unicode(unit: int, up: bool) -> INPUT:
     flags = KEYEVENTF_UNICODE | (KEYEVENTF_KEYUP if up else 0)
     return INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(0, unit, flags, 0, 0))
+
+
+def _char_vk(ch: str) -> tuple[int, bool] | None:
+    """The key that types ch on the PC's layout, and whether it needs Shift.
+
+    Apps only see a real key as a shortcut: Ctrl+/ or Ctrl+- sent as Unicode does nothing.
+    None means no plain key types it, so it has to be injected as Unicode.
+    """
+    if len(ch) != 1 or ord(ch) > 0xFFFF:
+        return None
+    found = user32.VkKeyScanW(ch)
+    if found == -1 or found & 0x0600:  # no such key, or it needs Ctrl or AltGr
+        return None
+    return found & 0xFF, bool(found & 0x0100)
 
 
 _BUTTONS = {
@@ -165,6 +181,10 @@ class WindowsBackend(Backend):
     def key(self, key: str, action: str = "press", mods: list[str] | None = None) -> None:
         vk = VK.get(key.lower())
         mod_vks = [VK[m] for m in MOD_ORDER if m in (mods or [])]
+        if vk is None and (found := _char_vk(key)):
+            vk, needs_shift = found
+            if needs_shift and VK["shift"] not in mod_vks:
+                mod_vks.append(VK["shift"])
         events: list[INPUT] = []
         if action in ("press", "down"):
             events += [_vk(m, False) for m in mod_vks]

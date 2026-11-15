@@ -29,9 +29,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Keyboard
@@ -73,6 +70,7 @@ import androidx.window.layout.FoldingFeature
 import com.flipdesk.app.data.LayoutOverride
 import com.flipdesk.app.data.Prefs
 import com.flipdesk.app.display.BigScreen
+import com.flipdesk.app.input.HardwareKeys
 import com.flipdesk.app.input.RemoteInput
 import com.flipdesk.app.net.ConnState
 import com.flipdesk.app.net.Hub
@@ -110,13 +108,16 @@ fun isCoverSize(wDp: Float, hDp: Float): Boolean {
 fun MainScreen(posture: Posture?, onSettings: () -> Unit) {
     val settings by Prefs.settings.collectAsStateWithLifecycle()
     val bigScreen by BigScreen.showingOn.collectAsStateWithLifecycle()
+    val onCover = rememberOnCoverScreen()
     // A new big screen always starts on the trackpad deck.
     LaunchedEffect(bigScreen) { if (bigScreen != null) Deck.hidden = false }
     BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val w = maxWidth.value
         val h = maxHeight.value
         val mode = when {
-            settings.layout == LayoutOverride.COVER || isCoverSize(w, h) -> LayoutMode.COVER
+            // The override only helps a small window that wasn't recognized as the cover screen;
+            // the open phone always gets the full app with its tabs (and a way back to Settings).
+            onCover || isCoverSize(w, h) || (settings.layout == LayoutOverride.COVER && max(w, h) < 600f) -> LayoutMode.COVER
             bigScreen != null && !Deck.hidden -> LayoutMode.BIG_SCREEN
             // Laptop mode streams a zoomed region, which would steal the big screen's full view.
             posture?.laptop == true && bigScreen == null -> LayoutMode.LAPTOP
@@ -166,6 +167,7 @@ private fun TopBar(onSettings: () -> Unit, modifier: Modifier = Modifier) {
         if (state !is ConnState.Connected && state !is ConnState.Connecting) {
             androidx.compose.material3.TextButton(onClick = { Hub.start(context) }) { Text("Connect") }
         }
+        KeyboardBadge(Modifier.padding(horizontal = 8.dp))
         BigScreenButton()
         IconButton(onClick = { Haptics.tick(); onSettings() }) { Icon(Icons.Rounded.Settings, "Settings") }
     }
@@ -184,7 +186,7 @@ private fun TabContent(tab: Tab, modifier: Modifier = Modifier) {
     }
 }
 
-/** Full-size live view with a keyboard toggle underneath. */
+/** Full-size live view with a Type button underneath that opens a text field. */
 @Composable
 fun ScreenPane(modifier: Modifier = Modifier) {
     var typing by remember { mutableStateOf(false) }
@@ -192,18 +194,10 @@ fun ScreenPane(modifier: Modifier = Modifier) {
     Column(modifier.padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         StreamView(Modifier.weight(1f).fillMaxWidth())
         AnimatedVisibility(typing, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                TypeField(Modifier.fillMaxWidth(), autoFocus = true, minHeight = 48.dp)
-                ModifierKeys(Modifier.fillMaxWidth(), height = 40.dp)
-            }
+            TypeField(Modifier.fillMaxWidth(), autoFocus = true, minHeight = 48.dp)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            KeyCap("Keyboard", { typing = !typing }, Modifier.weight(1.4f), icon = if (typing) Icons.Rounded.KeyboardHide else Icons.Rounded.Keyboard, height = 44.dp)
-            KeyCap("Esc", { RemoteInput.key("esc") }, Modifier.weight(1f), height = 44.dp)
-            KeyCap("Tab", { RemoteInput.key("tab") }, Modifier.weight(1f), height = 44.dp)
-            KeyCap("Win", { RemoteInput.key("win") }, Modifier.weight(1f), height = 44.dp)
-            KeyCap("Enter", { RemoteInput.key("enter") }, Modifier.weight(1f), height = 44.dp)
-        }
+        KeyCap(if (typing) "Hide keyboard" else "Type", { typing = !typing }, Modifier.fillMaxWidth(),
+            icon = if (typing) Icons.Rounded.KeyboardHide else Icons.Rounded.Keyboard, height = 44.dp, selected = typing)
     }
 }
 
@@ -217,7 +211,10 @@ private fun PortraitLayout(tab: Tab, onTab: (Tab) -> Unit, onSettings: () -> Uni
         AnimatedVisibility(preview, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
             StreamView(Modifier.padding(horizontal = 12.dp).padding(bottom = 10.dp).fillMaxWidth().aspectRatio(16f / 9f))
         }
-        TabContent(tab, Modifier.weight(1f).fillMaxWidth())
+        Row(Modifier.weight(1f).fillMaxWidth()) {
+            TabContent(tab, Modifier.weight(1f).fillMaxHeight())
+            ScrollStrip(Modifier.fillMaxHeight().padding(end = 8.dp, bottom = 4.dp))
+        }
         BottomNav(tab, onTab)
     }
 }
@@ -264,6 +261,7 @@ private fun LandscapeLayout(tab: Tab, onTab: (Tab) -> Unit, onSettings: () -> Un
             }
             TabContent(tab, Modifier.weight(1f).fillMaxHeight().padding(vertical = 8.dp))
         }
+        ScrollStrip(Modifier.fillMaxHeight().padding(top = 8.dp, bottom = 8.dp, end = 8.dp))
     }
 }
 
@@ -274,7 +272,15 @@ private fun TopBarCompact() {
         StatusDot(state)
         HSpace(8.dp)
         Text(state.label(), style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        KeyboardBadge(Modifier.padding(start = 8.dp))
     }
+}
+
+/** Shows that a physical keyboard is connected, which means typing goes straight to the PC. */
+@Composable
+private fun KeyboardBadge(modifier: Modifier = Modifier) {
+    val attached by HardwareKeys.attached.collectAsStateWithLifecycle()
+    if (attached) Icon(Icons.Rounded.Keyboard, "Keyboard connected", modifier.size(20.dp), tint = AccentGreen)
 }
 
 /**
@@ -313,7 +319,10 @@ private fun LaptopLayout(p: Posture) {
             }
             AnimatedVisibility(typing) { TypeField(Modifier.fillMaxWidth(), autoFocus = true, minHeight = 44.dp) }
             ArrowKeys(Modifier.fillMaxWidth(), height = 36.dp)
-            Trackpad(Modifier.weight(1f).fillMaxWidth().padding(bottom = 6.dp), hint = null, corner = 20.dp)
+            Row(Modifier.weight(1f).fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Trackpad(Modifier.weight(1f).fillMaxHeight(), hint = null, corner = 20.dp)
+                ScrollStrip(Modifier.fillMaxHeight())
+            }
         }
     }
 }
@@ -330,45 +339,34 @@ private fun roundedCornerInset(): Dp {
     return with(LocalDensity.current) { (r * 0.3f).toDp() }
 }
 
-/** Compact remote for the Flip8's near-square FlexWindow cover screen. */
+/**
+ * The Flip8's near-square FlexWindow cover screen: nothing but a trackpad and the scroll strip,
+ * so closing the phone with FlipDesk open carries straight on as a mouse.
+ */
 @Composable
 fun CoverRemote() {
     val state by Hub.state.collectAsStateWithLifecycle()
-    val pager = rememberPagerState { 2 }
     val inset = roundedCornerInset()
     val context = androidx.compose.ui.platform.LocalContext.current
-    KeepScreenOn(pager.currentPage == 1)
-    Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(inset)) {
-        HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth()) { page ->
-            if (page == 0) {
-                Column(Modifier.fillMaxSize().padding(horizontal = 6.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceEvenly) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        StatusDot(state)
-                        HSpace(6.dp)
-                        Text(state.label(), fontSize = 12.sp, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        if (state !is ConnState.Connected && state !is ConnState.Connecting) {
-                            androidx.compose.material3.TextButton(onClick = { Hub.start(context) }) { Text("Connect", fontSize = 12.sp) }
-                        }
+    KeepScreenOn(true)
+    Row(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(inset).padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(Modifier.weight(1f).fillMaxHeight()) {
+            Trackpad(Modifier.fillMaxSize(), hint = null, corner = 22.dp)
+            // Only shown while there's no link to the PC; once connected the pad is all there is.
+            if (state !is ConnState.Connected) {
+                Row(Modifier.align(Alignment.TopCenter).padding(top = 16.dp, start = 8.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    StatusDot(state)
+                    HSpace(6.dp)
+                    Text(state.label(), fontSize = 12.sp, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false))
+                    if (state !is ConnState.Connecting) {
+                        androidx.compose.material3.TextButton(onClick = { Hub.start(context) }) { Text("Connect", fontSize = 12.sp) }
                     }
-                    NowPlayingText(Modifier.fillMaxWidth(), big = false)
-                    TransportControls(Modifier.fillMaxWidth(), big = 80.dp, small = 60.dp)
-                    VolumeRow(Modifier.fillMaxWidth(), compact = true)
-                    KeyCap("Lock PC", { Hub.send("power", "action" to "lock"); Haptics.heavy() },
-                        Modifier.fillMaxWidth(0.6f), icon = null, height = 44.dp)
-                }
-            } else {
-                Column(Modifier.fillMaxSize().padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Trackpad(Modifier.weight(1f).fillMaxWidth(), hint = "Mini trackpad", corner = 22.dp)
-                    MouseButtonsRow(Modifier.fillMaxWidth(), height = 44.dp)
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.Center) {
-            repeat(2) { i ->
-                Box(Modifier.padding(3.dp).size(if (pager.currentPage == i) 8.dp else 6.dp).clip(CircleShape)
-                    .background(if (pager.currentPage == i) MaterialTheme.colorScheme.primary else Muted.copy(alpha = 0.5f)))
-            }
-        }
+        ScrollStrip(Modifier.fillMaxHeight())
     }
 }

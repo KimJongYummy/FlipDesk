@@ -1,17 +1,49 @@
 package com.flipdesk.app.input
 
+import android.content.Context
+import android.hardware.input.InputManager
+import android.os.Handler
+import android.os.Looper
 import android.view.InputDevice
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import com.flipdesk.app.data.Prefs
 import com.flipdesk.app.net.Hub
 import com.flipdesk.app.util.Haptics
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * Forwards a physical keyboard (Bluetooth / USB, e.g. with DeX) to the PC. Modifiers are held
- * on the PC exactly as on the keyboard, so Shift+arrows, Alt+Tab and Ctrl+click all work.
+ * on the PC exactly as on the keyboard, so Ctrl+C, Shift+arrows and Ctrl+click all work. The
+ * on-screen sticky modifiers apply too, which also reaches shortcuts Android keeps for itself.
  */
 object HardwareKeys {
+    private val _attached = MutableStateFlow(false)
+    /** Whether a physical keyboard is connected to the phone right now. */
+    val attached: StateFlow<Boolean> = _attached.asStateFlow()
+
+    /** Keeps [attached] up to date for as long as the app runs. */
+    fun watch(context: Context) {
+        val input = context.getSystemService(InputManager::class.java)
+        fun refresh() {
+            val now = input.inputDeviceIds.any { id ->
+                InputDevice.getDevice(id)?.let {
+                    !it.isVirtual && it.isExternal && it.keyboardType == InputDevice.KEYBOARD_TYPE_ALPHABETIC
+                } == true
+            }
+            if (now && !_attached.value && Hub.isConnected) Hub.toastLocal("Keyboard connected: typing goes to the PC")
+            _attached.value = now
+        }
+        input.registerInputDeviceListener(object : InputManager.InputDeviceListener {
+            override fun onInputDeviceAdded(deviceId: Int) = refresh()
+            override fun onInputDeviceRemoved(deviceId: Int) = refresh()
+            override fun onInputDeviceChanged(deviceId: Int) = refresh()
+        }, Handler(Looper.getMainLooper()))
+        refresh()
+    }
+
     private val modifierKeys = mapOf(
         KeyEvent.KEYCODE_CTRL_LEFT to "ctrl", KeyEvent.KEYCODE_CTRL_RIGHT to "ctrl",
         KeyEvent.KEYCODE_ALT_LEFT to "alt", KeyEvent.KEYCODE_ALT_RIGHT to "alt",
@@ -47,7 +79,10 @@ object HardwareKeys {
 
     /** Sends [e] to the PC. Returns true if it was consumed. */
     fun handle(e: KeyEvent): Boolean {
-        if (!Hub.isConnected) return false
+        if (!Hub.isConnected) {
+            held.clear() // the server let go of them when the connection dropped
+            return false
+        }
         val down = e.action == KeyEvent.ACTION_DOWN
         if (e.action != KeyEvent.ACTION_DOWN && e.action != KeyEvent.ACTION_UP) return true
         modifierKeys[e.keyCode]?.let { m ->
@@ -56,19 +91,25 @@ object HardwareKeys {
             return true
         }
         namedKeys[e.keyCode]?.let { name ->
-            Hub.send("key", "key" to name, "action" to if (down) "down" else "up")
+            if (Modifiers.any) {
+                if (down) RemoteInput.key(name)
+            } else {
+                Hub.send("key", "key" to name, "action" to if (down) "down" else "up")
+            }
             return true
         }
         if (e.keyCode == KeyEvent.KEYCODE_CAPS_LOCK || e.keyCode == KeyEvent.KEYCODE_NUM_LOCK) return true
-        val ch = e.unicodeChar
+        // A shortcut needs the plain key (Ctrl+C, Win+E…). Android reports no character at all
+        // for a key pressed with Ctrl, Alt or Meta, so ask for the one without modifiers.
+        val shortcut = Modifiers.any || held.any { it != "shift" }
+        val ch = if (shortcut) e.getUnicodeChar(0) else e.unicodeChar
         if (ch == 0 || ch and KeyCharacterMap.COMBINING_ACCENT != 0) return false
         if (!down) return true // printable keys are sent whole on key down (repeats included)
-        if (held.any { it != "shift" }) {
-            // Ctrl / Alt / Win is held: send the plain key so the PC sees the shortcut (Ctrl+C, Win+E…).
-            val base = e.getUnicodeChar(0).takeIf { it != 0 } ?: ch
-            Hub.send("key", "key" to String(Character.toChars(base)).lowercase())
-        } else {
-            Hub.send("text", "text" to String(Character.toChars(ch)))
+        val typed = String(Character.toChars(ch))
+        when {
+            Modifiers.any -> RemoteInput.key(typed.lowercase())
+            shortcut -> Hub.send("key", "key" to typed.lowercase())
+            else -> Hub.send("text", "text" to typed)
         }
         return true
     }

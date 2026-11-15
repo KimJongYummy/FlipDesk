@@ -7,6 +7,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +23,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.systemGestureExclusion
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,7 +34,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,10 +45,13 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -169,7 +180,7 @@ fun ConnState.label(): String = when (this) {
 fun Trackpad(
     modifier: Modifier = Modifier,
     sink: TrackpadSink = remember { PcTrackpadSink() },
-    hint: String? = "1 finger move · tap click · 2 finger scroll / right-click · 3 finger swipe",
+    hint: String? = "1 finger move · tap click · hold to drag · 2 finger scroll / right-click · 3 finger swipe",
     corner: Dp = 26.dp,
 ) {
     val settings by Prefs.settings.collectAsStateWithLifecycle()
@@ -179,6 +190,7 @@ fun Trackpad(
         engine.accel.acceleration = settings.acceleration
         engine.naturalScroll = settings.naturalScroll
         engine.scrollSpeed = settings.scrollSpeed
+        engine.holdToDrag = settings.holdToDrag
     }
     val accent = MaterialTheme.colorScheme.primary
     Box(
@@ -212,7 +224,53 @@ fun Trackpad(
     }
 }
 
-/** Left / right mouse buttons under small trackpads (cover screen, laptop row). */
+/**
+ * One-finger scroll wheel kept beside the controls on every main screen. Drag to scroll the PC,
+ * flick to glide. It never moves the pointer, and it follows the scroll settings.
+ */
+@Composable
+fun ScrollStrip(modifier: Modifier = Modifier, width: Dp = 40.dp) {
+    val settings by Prefs.settings.collectAsStateWithLifecycle()
+    val engine = remember { GestureEngine(PcTrackpadSink(), scrollOnly = true) }
+    LaunchedEffect(settings) {
+        engine.naturalScroll = settings.naturalScroll
+        engine.scrollSpeed = settings.scrollSpeed
+    }
+    var pressed by remember { mutableStateOf(false) }
+    val bg by animateColorAsState(if (pressed) MaterialTheme.colorScheme.primaryContainer else Pad, label = "strip")
+    val shape = RoundedCornerShape(width / 2)
+    Column(
+        modifier
+            .width(width)
+            .clip(shape)
+            .background(bg)
+            .border(1.dp, PadEdge, shape)
+            // This sits at the screen edge, where a drag that drifts sideways would otherwise mean Back.
+            .systemGestureExclusion()
+            .semantics { contentDescription = "Scroll strip: drag to scroll the PC" }
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    pressed = true
+                    do {
+                        val ev = awaitPointerEvent(PointerEventPass.Initial)
+                    } while (ev.changes.any { it.pressed })
+                    pressed = false
+                }
+            }
+            .trackpadInput(engine),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Icon(Icons.Rounded.KeyboardArrowUp, null, tint = Muted, modifier = Modifier.padding(top = 6.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            repeat(3) { Box(Modifier.size(width * 0.4f, 2.dp).clip(CircleShape).background(Muted.copy(alpha = 0.5f))) }
+        }
+        Icon(Icons.Rounded.KeyboardArrowDown, null, tint = Muted, modifier = Modifier.padding(bottom = 6.dp))
+    }
+}
+
+/** Left / right mouse buttons under the big-screen trackpad. */
 @Composable
 fun MouseButtonsRow(modifier: Modifier = Modifier, height: Dp = 48.dp) {
     val sink = remember { PcTrackpadSink() }

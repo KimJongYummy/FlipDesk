@@ -153,6 +153,7 @@ fun StreamView(
         engine.accel.acceleration = settings.acceleration
         engine.naturalScroll = settings.naturalScroll
         engine.scrollSpeed = settings.scrollSpeed
+        engine.holdToDrag = settings.holdToDrag
     }
 
     // When zoomed in, keep the PC cursor in view.

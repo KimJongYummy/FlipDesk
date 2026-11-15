@@ -69,6 +69,7 @@ class Session:
         self.transfers: dict[int, _Transfer] = {}
         self._move_rem = [0.0, 0.0]
         self._scroll_rem = [0.0, 0.0]
+        self._held_keys: set[str] = set()
         self._send_lock = asyncio.Lock()
 
     async def send(self, t: str, **fields: Any) -> None:
@@ -104,11 +105,21 @@ class Session:
         except ConnectionClosed:
             pass
         finally:
+            self._release_held_keys()
             self.streamer.close()
             for tr in self.transfers.values():
                 tr.abort()
             self.transfers.clear()
             self.server._client_left(self)
+
+    def _release_held_keys(self) -> None:
+        """A phone that drops off mid-press must not leave Ctrl or Shift stuck down on the PC."""
+        for key in self._held_keys:
+            try:
+                self.server.backend.key(key, "up")
+            except Exception:
+                log.exception("couldn't release %s", key)
+        self._held_keys.clear()
 
     async def _authenticate(self) -> bool:
         srv = self.server
@@ -169,7 +180,12 @@ class Session:
             dx, dy = self._accumulate(self._scroll_rem, m["dx"], m["dy"], 120)
             b.scroll(dx, dy)
         elif t == "key":
-            b.key(m["key"], m.get("action", "press"), m.get("mods") or [])
+            action, mods = m.get("action", "press"), m.get("mods") or []
+            if action == "down":
+                self._held_keys.update([m["key"], *mods])
+            elif action == "up":
+                self._held_keys.difference_update([m["key"], *mods])
+            b.key(m["key"], action, mods)
         elif t == "text":
             b.text(m["text"])
         elif t == "shortcut":

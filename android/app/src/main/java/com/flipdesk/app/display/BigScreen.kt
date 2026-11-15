@@ -61,13 +61,15 @@ object BigScreen {
 
     /**
      * An external screen, not the phone's own panels. The Flip's cover screen can be a separate
-     * display, but it's never a presentation display and is far smaller than any monitor or TV.
+     * display, and it may even be flagged for presentations, so anything cover-sized is ruled
+     * out first: it gets the trackpad, never the full-screen PC.
      */
     fun isExternal(d: Display): Boolean {
         if (d.displayId == Display.DEFAULT_DISPLAY || d.state == Display.STATE_OFF) return false
         if (d.flags and Display.FLAG_PRIVATE != 0) return false
-        if (d.flags and Display.FLAG_PRESENTATION != 0) return true
         val m = d.mode
+        if (com.flipdesk.app.ui.isCoverPixels(m.physicalWidth, m.physicalHeight)) return false
+        if (d.flags and Display.FLAG_PRESENTATION != 0) return true
         return max(m.physicalWidth, m.physicalHeight) >= 1600 // a DeX desktop that isn't flagged as presentation
     }
 
